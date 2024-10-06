@@ -1,0 +1,249 @@
+---
+title: "Case Study 1"
+author: "Liam Maher"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+### Libraries
+Include any libraries that you use here. Do not include the _install.packages()_ code. The markdown file will not run. 
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+```
+
+### Exercise 0 
+
+The Bureau of Transportation Statistics (BTS) is a statistical agency that is a part of the Research and Innovative Technology Administration (RITA). As its name implies, BTS collects and makes transportation data available, such as the flights data we will be working with in this case study. Here I provide the dataset and a glimpse of the dataset you will be working with. 
+
+```{r}
+data(nycflights)
+glimpse(nycflights)
+```
+
+### Exercise 1
+
+- Create a histogram of the departure delays for all flights. What do you notice about the shape and center of the distribution of departure delays?
+
+```{r}
+ggplot(data = nycflights, aes(x = dep_delay)) +
+  geom_histogram() +
+  labs( 
+    title = "Distribution of Departure Delays",
+    x = "Departure Delay (minutes)",
+    y = "Number of Flights"
+    )
+```
+
+The distribution is right-skewed, indicating the majority of flights have little to no delays.  However, there is a tail where some of the flights experience longer delays, but not many.  Most of the flights are clustered around 0 for departure delay.  The center of this distribution is close to 0, indicated by the much taller bar at 0.  The long tail on the right suggests while most flights experience small or no delays, there are some flights with more significant delays.
+
+- Now create two more histograms. This time one of binwidth = 15 and one with binwidth = 150. Compare the three histograms. How does the choice of binwidth affect the appearance of the histogram? Are features revealed in one that are obscured in another? 
+
+```{r}
+ggplot(data = nycflights, aes(x = dep_delay)) +
+  geom_histogram(binwidth = 15) +
+  labs( 
+    title = "Distribution of Departure Delays",
+    x = "Departure Delay (minutes)",
+    y = "Number of Flights"
+    )
+
+ggplot(data = nycflights, aes(x = dep_delay)) +
+  geom_histogram(binwidth = 150) +
+  labs( 
+    title = "Distribution of Departure Delays",
+    x = "Departure Delay (minutes)",
+    y = "Number of Flights"
+    )
+```
+
+All three histograms show a right skewed nature in their shape.  However, there is a clear difference between how detailed each of the plots shows the data.  In the default binwidth histogram, it is not as apparent that there are some flights with a negative departure delay.  However, when compared to the histogram with binwidth = 15, we can see that a majority of the flights have a near-zero departure delay, but it also reveals a medium-sized grouping of negative departure delays that is not as aparent when compared to the default binwidth.  Futhermore, the binwidth = 150 histogram still shows the right skewed nature of the graph, but not in as much detail as the default binwidth and binwidth = 15 graphs.
+
+### Exercise 2
+
+We can filter the data for flights with a specific destination. Here, I'm creating flights that only are from LAX.
+
+```{r}
+lax_flights <- nycflights %>%
+  filter(dest == "LAX")
+```
+
+- Using the new lax_flights dataset, look at the distribution of departure delays. What do you notice about the distribution of departure delays of flights from NYC to LAX? How does it compare to the distribution of all departure delays?
+
+```{r}
+ggplot(data = lax_flights, aes(x = lax_flights$dep_delay)) +
+  geom_histogram(binwidth = 15) +
+  labs( 
+    title = "Distribution of Departure Delays for Flights From NYC to LAX",
+    x = "Departure Delay (minutes)",
+    y = "Number of Flights"
+    ) +
+   xlim(-150, 1500)
+
+```
+
+Like the distribution of departure delays for all flights, the graph is right skewed, and most of the flights are clustered around 0 minutes for departure delay.  The overall distribution is very similar, with some flights being in the negative clustering, and most having slight departure delays, with a right tail indicating that some may have longer departure delays.NOTE: To properly analyze how the 2 distributions compared, I changed the values of the x axis to be -150 to 1500, an estimation based on what looked to be the ranges of the other graphs, I chose to keep this on in the report because it mirrored the other graphs more.  However, this excludes 2 data points, changing the range from -200 to 1600 includes these data points, but is not as close of match to the presentation of the previous graphs.
+
+- What are the mean and median departure delays of all departure times? 
+
+```{r}
+mean_all <- mean(nycflights$dep_delay)
+median_all <- median(nycflights$dep_delay)
+
+mean_all
+median_all
+
+summary(nycflights$dep_delay)
+```
+
+The mean of all delays for departure times is 12.71 minutes, while the median of departure delays is -2 minutes.
+
+
+- What are the mean and median departure delays of flights from NYC to LAX?
+
+
+```{r}
+mean_lax <- mean(lax_flights$dep_delay)
+median_lax <- median(lax_flights$dep_delay)
+
+mean_lax
+median_lax
+
+summary(lax_flights$dep_delay)
+```
+
+The mean departure delay of flights from NYC to LAX is approximately 9.78 minutes, and the medians departure delay of flights from NYC to LAX is -1 minutes.
+
+### Exercise 3
+
+You can also filter based on multiple criteria. Suppose you are interested in flights headed to San Francisco (SFO) in February:
+```{r}
+sfo_feb_flights <- nycflights %>%
+  filter(dest == "SFO", month == 2)
+```
+
+- How many flights meet the criteria to fly to SFO in February?
+
+```{r}
+nrow(sfo_feb_flights)
+```
+
+When we use nrow on the data set for flights to SFO in February, we see that there are 68 rows.  This correlates to 68 flights that meet the criteria.
+
+- Describe the distribution of the arrival delays of these flights using a histogram and appropriate summary statistics. Hint: The summary statistics you use should depend on the shape of the distribution.
+
+```{r}
+ggplot(data = sfo_feb_flights, aes(x = sfo_feb_flights$arr_delay)) +
+  geom_histogram() + 
+  labs( 
+    title = "Distribution of Arrival Delays for Flights to SFO in Feburary",
+    x = "Arrival Delay (minutes)",
+    y = "Number of Flights"
+    )
+
+  summary(sfo_feb_flights$arr_delay)
+```
+
+The distribution of the arrival delays of these flights is right skewed, indicating while many arrive on time or with small delay, there are some flights with significant delays.  Because the data is skewed, we should focus on the median, the mean will be useful to understand average delay, however, it will be inflated due to flights with significant delays.  For this data, the median arrival time delay is -11 minutes, while the mean arrival time delay is -4.5 minutes. The median means 50% of the flights have less than -11 minute arrival delay, while 50% have a greater than -11 minute arrival delay.  To further analyze this we can also look at the 1st and 3rd quartiles, which are -21.25 and 2.00, respectively.  It also may be helpful to note that the minimum arrival delay is -66 minutes, while the max arrival delay is 196.
+
+
+### Exercise 4
+
+We can use summarize and arrange to find the month with the highest average departure delay.
+
+```{r}
+nycflights %>%
+  group_by(month) %>%
+  summarise(mean_dd = mean(dep_delay)) %>%
+  arrange(desc(mean_dd))
+```
+
+Based on the above code, which month has the highest average delay departing NYC? Suppose you really dislike departure delays and you want to schedule your travel in a month that minimizes your potential departure delay leaving NYC. One option is to choose the month with the lowest mean departure delay. Another option is to choose the month with the lowest median departure delay. What are the pros and cons of these two choices?
+
+July has the highest average departure delay (month 7) when departing NYC with an average of 20.8.  October has the lowest average departure delay with an average of 5.88.  The pros and cons for each option will be listed below.
+Option 1 (Choose Month with lowest mean departure delay):
+  -Pros: Mean represents an overall average across all flights, giving you a good sense of what a typical delay you might experience is.
+  -Cons: The mean is sensitive to extreme values, if there are a few flights with very low departure delays (ex. -60 minutes) or very high departure delays (ex. 134 minutes) this can inflate the mean which can make the overall month seem much better or much worse.
+Option 2 (Choose Month with lowest median departure delays):
+  -Pros: Median is a better measure of central tendencies (not sensitive to extreme values), because it represents the middle value.  This means 50% of flights will have delays shorter than median, and 50% will have flights longer than median.
+  -Cons:The median doesnt give you the full distribution of delays, it doesn't account for how far outlier's might be.  There could still be a chance of encountering a very long delay even if the median is low.
+
+### Exercise 5
+
+Using a segmented bar plot, which NYC airport would you choose to fly out of if you were selecting an airport simply based on on time departure percentage?
+
+```{r}
+nycflights <- nycflights %>%
+  mutate(on_time = ifelse(dep_delay <= 0, "On Time", "Delayed"))
+
+ggplot(nycflights, aes(x = origin, fill = on_time)) +
+  geom_bar(position = "fill") +
+  labs(title = "On-Time vs Delayed Flights by NYC Airport",
+       x = "NYC Airport",
+       y = "Proportion",
+       fill = "Flight Status") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal()
+
+```
+
+By analyzing the segmented bar plot, I would choose to fly out of LGA if I was selecting an airport simply based on the on time departure percentage.  As we can see in the chart, LGA has the greatest On-Time departure percentage.
+
+### Exercise 6
+Make a scatterplot of avg_speed vs. distance. Describe the relationship between average speed and distance. Hint: Use geom_point().
+
+```{r}
+nycflights <- nycflights %>%
+  mutate(avg_speed = distance / (air_time)) 
+
+ggplot(nycflights, aes(x = distance, y = avg_speed)) +
+  geom_point() +
+  labs(
+    title = "Scatterplot of Average Speed vs. Distance",
+    x = "Distance (Miles)",
+    y = "Average Speed"
+  ) +
+  theme_minimal()
+
+cor(nycflights$distance, nycflights$avg_speed)
+```
+
+The relationship between average speed vs distance is a positive non-linear relationship until about 1000 miles, after which it no longer has a positive relationship. This is possibly because the flights are at cruising speeds for longer periods, which increases the average, but flights covering shorter distances are not at cruising speeds for as long.  Flights covering a shorter distance tend to have lower average speed, but as the distance increases, the average speed increases and then stabilizes around cruising speed (about 6-9 miles/minute).  As the correlation coefficient is 0.683, we can confirm the claims about a moderate positive relationship.  There seem to be some outliers in the data as well, possibly due to different weather conditions.  NOTE: I originally had the formula as air_time / 60 to make it Miles per hour, however, I got rid of the 60 after the announcement.
+
+### Exercise 7
+To your scatterplot from Exercise 6, color each dot based on the carrier. What do you notice about the relationship between average speed and distance by carrier? Determine (roughly) what the cutoff point is for departure delays where you can still expect to get to your destination on time. 
+
+```{r}
+ggplot(nycflights, aes(x = distance, y = avg_speed, color = carrier)) +
+  geom_point() +
+  labs(
+    title = "Scatterplot of Average Speed vs. Distance",
+    x = "Distance (miles)",
+    y = "Average Speed",
+    color = "Carrier"
+  ) +
+  theme_minimal()
+
+nycflights <- nycflights %>%
+  mutate(on_time_arrival = ifelse(arr_delay <= 0, "On Time", "Late"))
+
+nycflights <- nycflights %>%
+  mutate(dep_delay_category = cut(dep_delay, breaks = c(-Inf, 0, 15, 30, 60, 90, Inf), 
+                                  labels = c("<= 0 min", "1-15 min", "16-30 min", "31-60 min", "60-90 min", "> 90 min")))
+
+ggplot(nycflights, aes(x = dep_delay_category, fill = on_time_arrival)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "On-Time vs Not On-Time Arrivals by Departure Delay Range",
+    x = "Departure Delay Range",
+    y = "Proportion of Flights",
+    fill = "Arrival Status"
+  ) +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal()
+
+
+```
+
+
+There seems to be a wide range of average speeds on a given distance per carrier.  Each distance seems to have a carrier that flies that distance often (probably established routes), and there is large variability in average speed across that distance for each carrier.  This could be due to weather conditions or other factors affect the speed of the airplanes.  For part 2, I am not sure how that correlates to the average speed and distance, so I made another chart based on how I would think of the data.  As we can see from the segmented bar plot, around 75% of the flights made it on time with less than or equal to a 0 minute departure delay.  In the 1-15 minute range, a little more than 50% of the flights made it on time, so we can determine that the cutoff point to expect that you could make it on time is about 15 minutes, although you would have a much higher chance of getting to you destination on time if you had a 0 minute delay or less.
