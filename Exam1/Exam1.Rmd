@@ -1,0 +1,259 @@
+---
+title: "Exam 1: Intro to R"
+author: "Liam Maher"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+### Libraries
+Include any libraries that you use here. Do not include the _install.packages()_ code. The markdown file will not run. 
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+```
+
+### Exercise 0 
+Download the baseball.csv dataset from the Canvas course. The dataset contains
+information on 59 baseball players. The variables are as follows:
+- height: Height of the player in inches
+- weight: Weight of the player in pounds
+- bat: L if they bat left handed, R if they bat right handed
+- throw: L if they throw left handed, R if they throw right handed
+- field: 0 if they are a pitcher, 1 if they are a fielder
+- avg: either their pitching averages or fielding average depending on field
+
+```{r }
+baseball <- read.csv("~/Desktop/baseball.csv")
+```
+
+### Exercise 1
+Define a new variable called BMI, which means body mass index. The formula for BMI is 
+
+$$BMI = \frac{\text{weight} \times 703}{\text{height}^2}$$
+
+where weight is in pounds and height is in inches. Calculate the mean and standard deviation of all players BMI. Create a histogram for BMI for all players. Comment on the shape and center of the histogram. Then create a subset for the fielders and pitchers BMI and create a stacked histogram. Compare the two groups.  
+
+```{r }
+baseball$BMI <- (baseball$weight * 703) / (baseball$height^2)
+
+mean_BMI <- mean(baseball$BMI, na.rm = TRUE)
+sd_BMI <- sd(baseball$BMI, na.rm = TRUE)
+
+mean_BMI
+sd_BMI
+median(baseball$BMI, na.rm = TRUE)
+
+ggplot(baseball, aes(x = BMI)) +
+  geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
+  ggtitle("Histogram of BMI for All Players") +
+  xlab("BMI") +
+  ylab("Count")
+
+fielders <- subset(baseball, field == 1)
+pitchers <- subset(baseball, field == 0)
+
+# Create a stacked histogram for fielders and pitchers using ggplot2
+ggplot(baseball, aes(x = BMI, fill = as.factor(field))) +
+  geom_histogram(binwidth = 1, position = "stack", color = "black") +
+  scale_fill_manual(values = c("0" = "blue", "1" = "red"), 
+                    labels = c("Pitchers", "Fielders")) +
+  labs(title = "Stacked Histogram of BMI: Fielders vs. Pitchers",
+       x = "BMI", y = "Count", fill = "Position") +
+  theme_minimal()
+
+```
+
+The histogram for all players shows two distinct peaks in the dataset, commmon in bimodal distributions.  The 2 peaks are approximately centered around 24 and 26 for BMI.  The overall center for the distribution seems to be right in the middle at 25, which is confirmed by our median value of 24.996.  The mean for all players BMI is 24.80068 and 1.73 for standard deviation.  The highest amount of fielders grouped together is about 8 at BMI 24.  Pitchers on the other hand have 2 peaks, and have a much higher count in the BMI ranges of 24-26 than that of fielders.  The only BMI range where fielders start to dominate is around 27.  This could possibly suggest that fielders are more likely 
+
+### Exercise 2
+
+- Add the variable overweight to the dataset. A player is considered overweight if their BMI is greater than 25. Create a table of the number of overweight and non-overweight players. Which group has more players in it? What is the mean and of the overweight players? What about for the non-overweight? 
+
+- Create a stacked barplot of the number of overweight and non-overweight players based on position. Comment on your findings. Create a boxplot of the BMI of the players based on overweight. Comment on the distribution of the heights based on the dominant batting hand. Are there outliers?
+
+- Create a contingency table for the dominant batting hand of the players and their overweightness. Which dominant hand group has more overweight players? 
+ 
+
+```{r }
+baseball$overweight <- ifelse(baseball$BMI > 25, "Overweight", "Non-overweight")
+
+overweight_table <- table(baseball$overweight)
+print(overweight_table)
+
+mean_overweight <- mean(baseball$BMI[baseball$overweight == "Overweight"], na.rm = TRUE)
+mean_non_overweight <- mean(baseball$BMI[baseball$overweight == "Non-overweight"], na.rm = TRUE)
+
+cat("Mean BMI for overweight players:", mean_overweight, "\n")
+cat("Mean BMI for non-overweight players:", mean_non_overweight, "\n")
+                                         
+ggplot(baseball, aes(x = as.factor(field), fill = overweight)) +
+  geom_bar(position = "stack") +
+  scale_fill_manual(values = c("Overweight" = "red", "Non-overweight" = "blue"), 
+                    name = "Overweight Status") +
+  labs(x = "Position (0 = Pitcher, 1 = Fielder)", y = "Count", 
+       title = "Stacked Barplot of Overweight vs Non-overweight Players by Position") +
+  theme_minimal()
+
+#boxplot of Overwigeight and non overweight players BMI
+ggplot(baseball, aes(x = overweight, y = BMI, fill = overweight)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of BMI for Overweight and Non-overweight Players",
+       x = "Weight Category", y = "BMI") +
+  theme_minimal()
+
+#Boxplot of height based on dom hand
+ggplot(baseball, aes(x = bat, y = height, fill = bat)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Height by Dominant Batting Hand",
+       x = "Dominant Batting Hand (L = Left, R = Right)", y = "Height (inches)") +
+  theme_minimal()
+
+#Contingency table
+contingency_table <- table(baseball$bat, baseball$overweight)
+print(contingency_table)
+```
+
+More players are not overweight. (Assuming "and" was BMI and autocorrected) Mean BMI for overweight players is 26.18 and mean BMI for non-overweight players is 23.46. For the stacked barplot, it shows that more Fielders than pitchers, as well as that there are more fielders that are overweight than pitchers that are overweight, as well as more fielders that are not overwight than pitchers that are not overweight.  
+
+For boxplot, overweight players have a smaller IQR than that of Non overweight.  There is also an outlier in Overweight and not in non-overweight, signified by the dot up top (I would estimate it to be about 31 BMI).  Non overweights median looks to be about 23.75, while overweights might be around 26.  
+
+I made a boxplot to look at the distributions based on batting hand, the largest spread is definelty that of left, it also has the highest IQR, and the heighest median (75 inches).  Right handed is the next highest median (about 74 inches), but contains an outlier at around 69 inches, it also has the smallest IQR.  Switch has the smallest median at about 72 inches, and does not contain any outliers.
+
+Right handed has the most overweight players.
+
+### Exercise 3
+
+- Create a scatterplot of Average vs. BMI. Comment on the relationship between the two variables. 
+
+- Create a new scatterplot with the points colored by field. Comment on your new findings.
+
+
+```{r }
+#scatterplot
+ggplot(baseball, aes(x = baseball$BMI, y = average)) +
+  geom_point() +
+  labs(title = "Scatterplot of Average vs. BMI",
+       x = "BMI",
+       y = "Average") +
+  theme_minimal()
+
+#scatterplot by field 
+ggplot(baseball, aes(x = baseball$BMI, y = average, color = as.factor(field))) +
+  geom_point() +
+  scale_color_manual(values = c("0" = "blue", "1" = "red"), 
+                     labels = c("Pitcher", "Fielder")) +
+  labs(title = "Scatterplot of Average vs. BMI Colored by Position",
+       x = "BMI",
+       y = "Average",
+       color = "Position") +
+  theme_minimal()
+```
+
+
+There is no correlation between BMI and average.  We can see two groupings of averages though, one around 3-5, and one all below .5.
+
+There is still no correlation between BMI and average.  However, now we can see that the two groups we saw before are that of pitchers (higher average group (~3-5)) and fielders (lower average group (0-0.5))
+
+### Exercise 4
+
+- Run a linear regression model to predict the average of the players based on their BMI. Interpret the coefficients of the model. 
+
+- What is the predicted average for a player with a BMI of 25? If the actual value was .262 would the model over or underpredict the value? If the actual value was 3.460 would the model over or underpredict the value? Why do you think there could be such disparity between the two residuals? 
+
+- How much of the percent of variation in average is explained by its linear relationship with BMI? 
+
+- What is the correlation coefficient? 
+
+```{r }
+model <- lm(average ~ BMI, data = baseball)
+summary(model)
+
+# Predict the average for a player with a BMI of 25
+predicted_avg <- predict(model, data.frame(BMI = 25))
+cat("Predicted average for a player with a BMI of 25:", predicted_avg, "\n")
+
+actual_value_1 <- 0.262
+actual_value_2 <- 3.460
+
+cat("For actual value 0.262, the model", 
+    ifelse(predicted_avg > actual_value_1, "overpredicts", "underpredicts"), "\n")
+
+cat("For actual value 3.460, the model", 
+    ifelse(predicted_avg > actual_value_2, "overpredicts", "underpredicts"), "\n")
+
+#calc r squared
+r_squared <- summary(model)$r.squared
+cat("R-squared (percent of variation explained):", r_squared * 100, "%\n")
+#calc corr coeff
+correlation_coefficient <- cor(baseball$BMI, baseball$average, use = "complete.obs")
+cat("Correlation coefficient between BMI and average:", correlation_coefficient, "\n")
+```
+
+The regression equation would be y(hat) = 0.08248 + 0.06871x. That means that when a players BMI is 0 (unrealistic but what our model uses to predict) they would have an average of 0.08248.  It also means for every 1 increase in BMI, the players average increases by .06871.  
+
+The predicted average is 1.800323.  If the actual value was 0.262, it overpredicts: 0.262 - 1.800323 = -1.538323.  If the actual value was 3.460 the model underpredicts: 3.460-1.800323 = 1.659677.  Those are the residuals.  The discrepency could be due to the fact that the model uses BMI to predict average of all players, and the average values of pitchers and fielders is very different as we saw before.
+
+The R squared value is .004484 and shows us that .448% of the variation in average is explained by BMI.
+
+The correlation coeff is sqrt() of r^2 is approximately 0.06696.  This indicates a very very weak positive linear relationship.  A correlation coefficient of 0 indicates no linear relationship exists between the variables, and this is very close to 0.
+
+
+
+### Exercise 5
+
+- Define `Simpson's Paradox' 
+
+- Create two subsets of data based on field. Run a regression on each subset. Compare the coefficients of the two models with the model you ran in Exercise 4. 
+
+- Do you find the two models are significantly different from the model you made in Exercise 4 when you account for field position? 
+```{r}
+pitchers <- subset(baseball, field == 0)
+fielders <- subset(baseball, field == 1)
+
+
+# Linear regression for all players (Exercise 4)
+model_all <- lm(average ~ BMI, data = baseball)
+summary(model_all)
+
+# Regression for pitchers
+model_pitchers <- lm(average ~ BMI, data = pitchers)
+summary(model_pitchers)
+
+# Regression for fielders
+model_fielders <- lm(average ~ BMI, data = fielders)
+summary(model_fielders)
+
+# Compare coefficients
+cat("Coefficients for the overall model (all players):\n")
+print(coef(model_all))
+
+cat("\nCoefficients for the pitchers model:\n")
+print(coef(model_pitchers))
+
+cat("\nCoefficients for the fielders model:\n")
+print(coef(model_fielders))
+
+# Subset the data for pitchers (field = 0)
+pitchers <- subset(baseball, field == 0)
+
+# Calculate the correlation coefficient between BMI and average for pitchers
+correlation_pitchers <- cor(pitchers$BMI, pitchers$average, use = "complete.obs")
+
+# Print the result
+cat("Correlation coefficient for pitchers:", correlation_pitchers, "\n")
+
+pitchers <- subset(baseball, field == 0)
+
+# Calculate the correlation coefficient between BMI and average for pitchers
+correlation_pitchers <- cor(pitchers$BMI, pitchers$average, use = "complete.obs")
+
+# Print the result
+cat("Correlation coefficient for pitchers:", correlation_pitchers, "\n")
+
+```
+
+Simpson's paradox occurs when a trend is visible in two groups of data, but when the groups are combined, it reverses or disappears.
+
+The intercept for just pitchers indicates a much higher intercept of about 5.06, which makes sense because we saw the average for the pitchers was much higher than that of fielders. Fielders have an intercept of 0.021, which also makes sense because we saw the fielders had an average between 0 and .5.  Both of these have a similar, near 0 slope, but Pitchers is actually -0.05 while fielders is positive 0.002.  Compared to the model from before, the intercepts between pitcher is much different, where the intercept for fielders is only slightly larger.  The overall slope is not much different.  In terms of R^2, pitchers is 0.02866 and fielders is 0.02057, this leads to a correlation coefficient of pitchers = -0.1692 and fielders = 0.1434.  These values show a stronger correlation for each than that of the whole group, but it is still very weak.  In this case, pitchers correlation is negative while fielders correlation is positive, and the whole groups correlation is slightly positive.
+
+They 2 models are different than that of the overall model, but there is still a very weak relationship between BMI and average for both.  Most of the big differences are mentioned in the paragraph above.
