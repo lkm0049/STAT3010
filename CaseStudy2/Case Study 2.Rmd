@@ -1,0 +1,303 @@
+---
+title: "Case Study 2"
+author: "Liam Maher STAT 3010 - Fall 2024"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+### Libraries
+Include any libraries that you use here. Do not include the _install.packages()_ code. The markdown file will not run. 
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+```
+### Exercise 0
+
+This case study explores hypothesis testing, bootstrapping, and confidence intervals. We will be using the `manhattan` dataset from the `openintro` package. The dataset contains information about rent in Manhattan, NY.
+
+```{r, eval = FALSE}
+glimpse(manhattan)
+```
+
+### Exercise 1
+
+- Create histograms for the `rent`. Describe the shape and center. 
+
+```{r}
+
+sd(manhattan$rent)
+
+# Create histograms for the rent
+ggplot(manhattan, aes(x = rent)) +
+  geom_histogram(binwidth = 500, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Histogram of Rent in Manhattan",
+    x = "Rent",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+
+median(manhattan$rent)
+```
+
+The histogram appears to be right skewed, with a long tail on the right side where rent prices are higher.  There is a second peak at the end of the tail ($4000/month), where there is a much larger grouping than on the rest of the tail, but still not as large of a grouping as the (2000-2500/Month) range.  The center seems to be around 2000 or 2500, we can confirm this by looking at the median, which is 2350.
+
+
+### Exercise 2
+
+- Check the conditions for a hypothesis test. Regardless of the outcome, conduct a hypothesis test to determine if the average rent is above $2000 per month. Use a significance level of 0.05. 
+
+```{r}
+
+glimpse(manhattan)
+
+qqnorm(manhattan$rent)
+qqline(manhattan$rent, col = "red")
+
+ggplot(manhattan, aes(x = rent)) +
+  geom_histogram(binwidth = 500, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Histogram of Rent in Manhattan",
+    x = "Rent",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+
+
+t_test_result <- t.test(manhattan$rent, mu = 2000, alternative = "greater")
+
+t_test_result
+```
+
+Assume random sampling and independence. Data is approximately normally distributed.  Since the p-value (0.001167) is much smaller than the significance level of 0.05, we reject the null hypothesis.  This means there is significant evidence to conclude that the average rent in Manhattan is indeed greater than $2000 per month. Additionally, the confidence interval suggests that we are 95% confident that the true mean rent is above 2317.63 dollars.
+
+### Exercise 3
+
+- Check the conditions to create a confidence interval. Regardless of the outcume, calculate a 95% confidence interval for the average monthly rent.  
+
+```{r}
+conf_int <- t.test(manhattan$rent, conf.level = 0.95)
+
+conf_int
+```
+
+Assume random sampling and independence.  As seen before, the distribution is approximately normal.  We are 95% confident that the true average monthly rent in Manhattan falls between \$2252.77 and \$2998.83. This interval provides a reasonable range for the average rent based on the sample. 
+
+### Exercise 4
+
+One of the assumptions for the hypothesis test / confidence interval is that the sampling distribution is normally distributed. 
+
+Central Limit Theorem states that the sampling distribution of the sample mean will be approximately normal if the sample size is large enough ($n \geq 30$). Even if the sample size is not large enough, if the underlying population is normal, we can use a $t$-test. However, this is not always feasible - like in this example. Bootstrapping is a method that involves resampling the data with replacement to create a distribution of the sample statistic without requiring normality.
+
+The following code is for bootstrapping.
+
+```{r, eval = F}
+
+bootstrap <- function(data, n_resamples) {
+  resampled_means <- numeric(n_resamples)
+  
+  for (i in 1:n_resamples) {
+    resample <- sample(data, size = length(data), replace = TRUE)
+    resampled_means[i] <- mean(resample)
+  }
+  
+  return(resampled_means)
+}
+
+```
+
+- Use the `bootstrap` function to create histograms of the resampled means of the `rent``. Start with n_resamples = 1, n_resamples = 2, then increase the number of resamples to 10, 100, 1000, and 10000. Describe what happens as n_resamples increases. 
+
+```{r}
+bootstrap <- function(data, n_resamples) {
+  resampled_means <- numeric(n_resamples)
+  
+  for (i in 1:n_resamples) {
+    resample <- sample(data, size = length(data), replace = TRUE)
+    resampled_means[i] <- mean(resample)
+  }
+  
+  return(resampled_means)
+}
+
+resample_sizes <- c(1, 2, 10, 100, 1000, 10000)
+
+# Generate histograms for each resample size
+for (n_resamples in resample_sizes) {
+  resampled_means <- bootstrap(manhattan$rent, n_resamples)
+  
+  # Plot histogram
+  p <- ggplot(data.frame(resampled_means), aes(x = resampled_means)) +
+    geom_histogram(binwidth = 50, fill = "skyblue", color = "black", alpha = 0.7) +
+    labs(
+      title = paste("Histogram of Resampled Means with n_resamples =", n_resamples),
+      x = "Resampled Mean Rent",
+      y = "Frequency"
+    ) +
+    theme_minimal()
+  
+  print(p)
+}
+```
+
+As the number of resamples increases, the distribution looks to become more normal.  In the 1 resample, the historgram bar is practically the entire chart, then in 2 samples, we see 2 large bars centered around 2700 and 2800.  For 10 we have more bars and 1 distinct peak around 2650. In 100, 1000, 10000 resamples, the distribution becomes much more normal, centered around 2600 and with no obvious skew.
+
+### Exercise 5
+
+- Using the `bootstrap` function, generate 10,000 resamples of the mean rent. Perform a new hypothesis test using the resampled means. Do your results differ from above? 
+
+```{r}
+set.seed(123) # Set a seed for reproducibility
+resampled_means <- bootstrap(manhattan$rent, n_resamples = 10000)
+
+p_value_bootstrap <- mean(resampled_means > 2000)
+
+# Display the bootstrapped p-value
+p_value_bootstrap
+```
+
+The bootstrapped p-value is 1, meaning all of the resampled means were greater than \$2000.  This does not differ from the results obtained above. 
+
+### Exercise 6
+
+- Using the `bootstrap` function, generate 10,000 resamples of the mean rent. Perform a new confidence interval using the standard error of the resampled means. Create a histogram of the resampled means and add vertical lines for the mean, old 95% confidence interval, and 95% bootstrapped confidence interval. What do you notice? 
+
+```{r}
+set.seed(123)
+resampled_means <- bootstrap(manhattan$rent, n_resamples = 10000)
+
+# Step 2: Calculate the bootstrapped confidence interval
+# Mean and standard error of the resampled means
+boot_mean <- mean(resampled_means)
+boot_se <- sd(resampled_means)
+
+# Calculate the 95% confidence interval using the standard error and z-score (1.96 for 95%)
+ci_lower <- boot_mean - 1.96 * boot_se
+ci_upper <- boot_mean + 1.96 * boot_se
+boot_ci <- c(ci_lower, ci_upper)
+boot_ci
+
+# Original 95% confidence interval from Exercise 3 (hardcoded for plotting)
+original_ci <- c(2252.77, 2998.83)
+
+
+# Step 3: Plot the histogram with vertical lines
+ggplot(data.frame(resampled_means), aes(x = resampled_means)) +
+  geom_histogram(binwidth = 10, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Histogram of Resampled Means with Confidence Intervals",
+    x = "Resampled Mean Rent",
+    y = "Frequency"
+  ) +
+  theme_minimal() +
+  geom_vline(xintercept = boot_mean, color = "blue", linetype = "dashed", linewidth = 1) +
+  geom_vline(xintercept = original_ci[1], color = "red", linetype = "dotted", linewidth = 1) +
+  geom_vline(xintercept = original_ci[2], color = "red", linetype = "dotted", linewidth = 1) +
+  geom_vline(xintercept = ci_lower, color = "green", linetype = "solid", linewidth = 1) +
+  geom_vline(xintercept = ci_upper, color = "green", linetype = "solid", linewidth = 1) 
+
+```
+
+The bootstrapped confidence interval (green lines) is slightly narrower than the original confidence interval (red lines), which suggests the resampled data may have less variability. The bootstrapped mean (blue line) is almost centered within both confidence intervals, indicating alignment between the two methods. The green lines mark the bootstrapped CI upper and lower bounds, the red lines mark the original CI bounds, and the blue line represents the bootstrapped mean.
+
+### Exercise 7
+
+Bootstrapping also can be used to create a confidence interval for the median or other statistics that the distribution is not readily known. 
+
+We can use `tidyverse` to help up bootstrap the median. 
+
+```{r, eval = F}
+___ |>                               # start with data frame
+  specify(response = ___) |>         # specify the variable of interest
+  generate(reps = ___, type = "bootstrap") |>  # generate bootstrap samples
+  calculate(stat = "___")             # calculate bootstrap statistic
+```
+
+- Use the code above to bootstrap the median of the Manhattan rent. Save the results into a new dataframe called rent_boot.
+
+```{r}
+library(infer)
+# Bootstrap the median of Manhattan rent
+rent_boot <- manhattan |>                              
+  specify(response = rent) |>         # Specify the variable of interest
+  generate(reps = 10000, type = "bootstrap") |>  # Generate 10,000 bootstrap samples
+  calculate(stat = "median")             # Calculate the bootstrap median
+
+head(rent_boot)
+```
+
+- Plot a histogram of the bootstrapped medians. Add vertical lines for the median. Comment on your findings.
+
+```{r}
+# Calculate the median of the bootstrapped medians
+bootstrapped_median <- median(rent_boot$stat)
+bootstrapped_median
+# Plot the histogram of bootstrapped medians
+library(ggplot2)
+ggplot(rent_boot, aes(x = stat)) +
+  geom_histogram(binwidth = 50, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Histogram of Bootstrapped Medians for Manhattan Rent",
+    x = "Bootstrapped Median Rent",
+    y = "Frequency"
+  ) +
+  theme_minimal() +
+  geom_vline(xintercept = bootstrapped_median, color = "red", linetype = "dashed", linewidth = 1) +
+  annotate("text", x = bootstrapped_median, y = max(table(rent_boot$stat)) * 0.9, 
+           label = paste("Median:", round(bootstrapped_median, 2)), color = "red", angle = 90, vjust = -0.5)
+```
+
+The bootstrapped median is approximately 2350, marked by the red dashed line. The histogram shows a single large peak around the median, indicating that most bootstrap samples produced similar median values. There is a slight right skew, suggesting that while most resampled medians are close to 2350, a few samples resulted in higher median values, creating a small tail to the right.
+
+### Exercise 8
+
+- Calculate a 95% confidence interval for the median rent using
+
+$$ \text{median} \pm t^*_{df = n - 1} \times \text{SD}_{boot} $$
+
+where $t^*_{df = n - 1}$ is the critical value for a $t$-distribution with $n - 1$ degrees of freedom and $\text{SE}_{boot}$ is the standard deviation of the bootstrapped medians distribution. Interpret your results. 
+
+```{r}
+# Number of original observations (n)
+n <- nrow(manhattan)
+
+# Calculate the standard deviation of the bootstrapped medians
+SD_boot <- sd(rent_boot$stat)
+
+# Find the critical t-value for a 95% confidence level with df = n - 1
+t_critical <- qt(0.975, df = n - 1)
+
+# Calculate the median of the bootstrapped medians
+boot_median <- median(rent_boot$stat)
+
+# Calculate the confidence interval
+ci_lower <- boot_median - t_critical * SD_boot
+ci_upper <- boot_median + t_critical * SD_boot
+ci <- c(ci_lower, ci_upper)
+
+# Display the confidence interval
+ci
+```
+
+We are 95% confident that the true median rent in Manhattan lies between \$1999.73 and \$2700.27
+ 
+
+
+
+
+
+
+
+ 
+
+
+
+
+```{r}
+
+```
+
+
+
+
+
