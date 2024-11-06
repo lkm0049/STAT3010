@@ -1,0 +1,362 @@
+---
+title: "Exam 2 Take Home"
+author: "Liam Maher"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+### Libraries
+Include any libraries that you use here. Do not include the _install.packages()_ code. The markdown file will not run. 
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+```
+
+ ### Exercise 1
+
+One of the main requirements for a t-test is that the data is normally distributed, or that we have a large enough sample so that Central Limit Theorem holds. One of the best ways to see that is to plot a histogram of the data and see if the shape is normal. However, this way is not always reliable.
+
+- The $\chi^2$ distribution is a right-skewed distribution with degree of freedom $\nu$. Set the seed equal to 2024 and generate a sample of 100 observations from a $\chi^2$ distribution with $\nu = 60$. Plot the histogram of the data. Describe the shape of the histogram. Would you consider the histgram normally distributed? 
+
+```{r}
+# Set seed for reproducibility
+set.seed(2024)
+
+# Generate a sample of 100 observations from a chi-squared distribution with 60 degrees of freedom
+sample_data <- rchisq(100, df = 60)
+
+# Plot histogram using ggplot
+ggplot(data.frame(sample_data), aes(x = sample_data)) +
+  geom_histogram(bins = 10, color = "black", fill = "skyblue") +
+  labs(title = "Histogram of Chi-squared Distribution (df = 60)",
+       x = "Value",
+       y = "Frequency") +
+  theme_minimal()
+```
+
+The histogram shape is roughly symmetrical, with a very slight right skew.  The histogram appears to be approximately normally distributed.
+
+
+The QQ Plot is a scatter plot of the quantiles of the data against the quantiles of a theoretical normal distribution. If the data is normally distributed, the points should fall on a straight line. The function _qqnorm()_ is used to create the QQ Plot and the function _qqline()_ is used to add a line to the plot.
+
+- Create a QQ Plot of the data you generated. Describe the shape of the plot. Would you consider the data normally distributed?
+
+```{r}
+# Create QQ Plot
+qqnorm(sample_data, main = "QQ Plot of Chi-squared Distribution (df = 60)")
+qqline(sample_data, col = "blue", lwd = 2)
+```
+
+The QQ plot shows that the points fall mostly along the straight line, which suggests that the distribution of the data is approximately normal. There is a small deviation at the extremes (both lower and upper quantiles), where some points veer slightly off the line, however, the deviation is minimial.
+
+Both the histogram and QQ plot provide evidence of normality. We can also perform a Shapiro-Wilks test for normality. The null hypothesis of the test is that the data is normally distributed. The alternative hypothesis is that the data is not normally distributed. The test is available in R using the function _shapiro.test()_. 
+
+- Perform the Shapiro-Wilk test on the data you generated. What is the p-value of the test? What is your conclusion?
+
+```{r}
+# Perform Shapiro-Wilk test for normality
+shapiro_test_result <- shapiro.test(sample_data)
+
+# Display the p-value
+shapiro_test_result$p.value
+```
+
+With a p-value of 0.4431 from the Shapiro-Wilk test, we fail to reject the null hypothesis that the data is normally distributed, as this p-value is greater than the typical significance level of 0.05. This result, along with the evidence from the histogram and QQ plot, supports the conclusion that the data can be considered approximately normal.
+
+- Why do you think there are three different methods for checking if data is normal as opposed to just one? 
+
+Each of the methods offers unique advantages for checking if the distribution is normal.  If there was just one, such as our histogram above, we could not be as sure as we are that the data is approximately normal.  By utilizing the QQ plot and statistical methods in Shapiro-Wilk, we can be more sure that the data is approximately normal.  This helps to further prove which tests we might be able to run in the future.
+
+
+### Exercise 2
+
+In some problem situations, we may be interested in predicting a future observation of a variable. This is a different problem than estimating the mean of that variable, so a confidence interval is not appropriate. Suppose we have a sample $X_1, X_2, \ldots, X_n$ from a normal distribution with unknown mean $\mu$ and known standard deviation $\sigma$. We want to predict the value of a future observation $X_{n+1}$.
+
+Statistical theory tells us that 
+
+$$ T = \dfrac{X_{n+1} - \bar{X}}{S\sqrt{1 + \frac{1}{n}}} $$
+
+has a $t$ distribution with $n-1$ degrees of freedom. 
+
+
+- Manipulating the equation above as we did for confidence intervals, find the equation for the prediction interval of $X_{n+1}$. 
+
+(Had to look up how to format this in LaTeX)
+\[
+\left( \bar{X} \pm t_{\alpha/2, n-1} \cdot S \sqrt{1 + \frac{1}{n}} \right)
+\]
+
+- Generate a sample of 100 observations from a normal distribution with mean 10 and standard deviation 2. Calculate the prediction interval for the next observation. What is the interpretation of the prediction interval?
+
+```{r}
+set.seed(2024)
+
+# Generate a sample of 100 observations from a normal distribution
+sample_data <- rnorm(100, mean = 10, sd = 2)
+
+# Calculate sample mean and standard deviation
+sample_mean <- mean(sample_data)
+sample_sd <- sd(sample_data)
+n <- length(sample_data)
+
+# Set confidence level
+alpha <- 0.05
+t_value <- qt(1 - alpha/2, df = n - 1)
+
+# Calculate the prediction interval
+margin_of_error <- t_value * sample_sd * sqrt(1 + 1/n)
+lower_bound <- sample_mean - margin_of_error
+upper_bound <- sample_mean + margin_of_error
+
+# Display the prediction interval
+cat("Prediction Interval for the next observation: [", lower_bound, ",", upper_bound, "]\n")
+```
+
+We are 95% confident that the next observation from this normal distribution will fall in the range of 5.752228 to 13.90804.
+
+
+### Exercise 3 
+
+The `gpa' dataset contains data on 55 students. The dataset has the following variables:
+
+- `gpa`: the GPA of the student
+- `studyweek`: the number of hours the student studies per week
+- `sleepnight`: the number of hours the student sleeps per night
+- `out` : the number of nights the student goes out per week
+- `gender`: the gender of the student
+
+
+- Check the normality conditions for the variable `gpa`.
+
+```{r}
+ggplot(gpa, aes(x = gpa)) +
+  geom_histogram(bins = 10, color = "black", fill = "skyblue") +
+  labs(title = "Histogram of GPA",
+       x = "GPA",
+       y = "Frequency") +
+  theme_minimal()
+
+qqnorm(gpa$gpa, main = "QQ Plot of GPA")
+qqline(gpa$gpa, col = "blue", lwd = 2)
+
+# Shapiro-Wilk Test for Normality
+shapiro_test_gpa <- shapiro.test(gpa$gpa)
+shapiro_test_gpa$p.value
+```
+
+The distribution of gpa is somewhat concentrated between 3.0 and 4.0, with a possible gap or “tail” above 4.0 due to an outlier. This lack of data in the higher range shows that the data is not truly symmetrical and has a slight right skew. The QQ plot confirms this, as the points largely follow the line but deviate at the high end, where the outlier lies. With a p-value of 0.07096, we still fail to reject the null hypothesis of normality at the 0.05 significance level, which suggests that the data is close to normal but may have slight deviations due to the outlier.
+
+- Despite your findings in the previous part, test if the variable `gpa` is significantly different from $3.1$. Use a significance level of $0.05$. Interpret your results.
+
+```{r}
+nrow(gpa)
+
+t_test_gpa <- t.test(gpa$gpa, mu = 3.1)
+t_test_gpa
+```
+
+Given the very small p-value (1.773e-15) and the confidence interval that excludes 3.1, we have strong evidence to conclude that the true mean GPA of the students is significantly different from 3.1. Specifically, the data suggests that the mean GPA is higher than 3.1, since the 95% confidence interval is from 3.509342 to 3.690803.
+
+- Create subsets for the variable `gpa` based on the variable `gender`. Test if the mean GPA of `male` students is significantly different from $3.1$. Use a significance level of $0.05$. Interpret your results. Now do the same with the mean GPA of `female` students.
+
+```{r}
+male_gpa <- subset(gpa, gender == "male")$gpa
+female_gpa <- subset(gpa, gender == "female")$gpa
+
+# One-sample t-test for male GPA against 3.1
+t_test_male <- t.test(male_gpa, mu = 3.1)
+t_test_male
+
+# One-sample t-test for female GPA against 3.1
+t_test_female <- t.test(female_gpa, mu = 3.1)
+t_test_female
+```
+
+- Calculate 95% confidence intervals for the mean GPA of `male` and `female` students respectively. Interpret your results. Where do the intervals overlap? 
+
+```{r}
+#t.test does 95% conf by default
+ci_male <- t.test(male_gpa)$conf.int
+ci_male
+
+#t.test does 95% conf by default
+# Calculate 95% confidence interval for female GPA
+ci_female <- t.test(female_gpa)$conf.int
+ci_female
+```
+
+Since the p-value is less than 0.05, we reject the null hypothesis and conclude that the mean GPA of male students is significantly different from 3.1. Additionally, the confidence interval does not contain 3.1, further supporting this conclusion.  Since the p-value is far below 0.05, we reject the null hypothesis and conclude that the mean GPA of female students is also significantly different from 3.1. The confidence interval does not include 3.1, supporting this conclusion.
+
+We are 95% confident that the true mean GPA for male students falls within 3.291924 to 3.828076.  We are 95% confident that the true mean GPA for female students falls within 3.515104 to 3.707407.  The two intervals overlap on the entire interval of the female confidence interval (from 3.515104 to 3.707407), as the male students confidence interval is much larger than that of the females.
+
+### Exercise 4
+
+The power of a test depends on the sample size, the significance level, and the effect size (calculated using the test statistic). 
+
+The following function calculates the power of a test for a given sample size, significance level, and effect size. Here $n$ is the sample size, $\alpha$ is the significance level, $H0$ represents the null $\mu$ value, $H1$ represents the true $\mu$ value, and $sig$ is the standard deviation. 
+
+```{r}
+nrm_pwr1 <- function(n = 30, 
+                     alpha = .05,
+                     H0 = 0, 
+                     H1 = 2, 
+                     sig = 1) {
+  
+  # Find the z_critical value
+  z_alpha <- qnorm(p = alpha, 
+                   mean = 0, 
+                   sd = 1, 
+                   lower.tail = FALSE)
+  # Find the ybar_critical value
+  y_bar_cv <- z_alpha*(sig/sqrt(n)) + H0
+  
+  # Calculate the power under H1.
+  power <- pnorm(q = y_bar_cv, 
+                 mean = H1, 
+                 sd = sig/sqrt(n), 
+                 lower.tail = FALSE)
+  # Report the power.
+  power
+}
+```
+
+- The function `lapply` can be used to apply a function across multiple data points. The following code calculates the power for a hypothesis test of $H_0: \mu = 100$ versus $H_0: \mu > 100$. Plot the power curve for each test using varying alpha: .001, .005, .01, .05, .1. Use different colors for each curve. Describe the relationship between the power of the test and the significance level.
+
+```{r, results='hide'}
+# lapply example: 
+lapply(X = 1:200, FUN = nrm_pwr1, 
+      alpha = .05, H0 = 100, H1 = 105, sig = 15)
+```
+
+```{r}
+alpha_levels <- c(0.001, 0.005, 0.01, 0.05, 0.1)  # Different alpha levels
+H0 <- 100  # Null hypothesis mean
+H1 <- 105  # True mean under alternative hypothesis
+sig <- 15  # Standard deviation
+
+# Calculate power for each alpha level across sample sizes (1 to 200)
+power_curves <- lapply(alpha_levels, function(alpha) {
+  unlist(lapply(1:200, FUN = nrm_pwr1, alpha = alpha, H0 = H0, H1 = H1, sig = sig))
+})
+
+# Convert the results into a data frame for plotting
+power_df <- data.frame(
+  Sample_Size = rep(1:200, times = length(alpha_levels)),
+  Power = unlist(power_curves),
+  Alpha = factor(rep(alpha_levels, each = 200))
+)
+
+# Plot the power curves
+ggplot(power_df, aes(x = Sample_Size, y = Power, color = Alpha)) +
+  geom_line(size = 1.2) +
+  labs(title = "Power Curve for Varying Significance Levels Across Sample Sizes",
+       x = "Sample Size",
+       y = "Power of the Test",
+       color = "Significance Level (Alpha)") +
+  theme_minimal()
+```
+
+As the sample size and significance level increase, the power of the test also increases.  Higher significance levels increase in power more rapidly at smaller sample sizes than those of smaller significance levels.  The large the sample size, the closer all significance levels come to being near a power of 1. 
+
+- Use the function to create a set of power curves based on varying sigma instead of n. Use a fixed value of n = 30. Make curves for alpha = .01, .05. Let sigma range from 1 to 30.
+
+```{r}
+n <- 30  # Fixed sample size
+alpha_levels <- c(0.01, 0.05)  # Specified alpha levels
+H0 <- 100  # Null hypothesis mean
+H1 <- 105  # True mean under alternative hypothesis
+sigmas <- 1:30  # Range of sigma values to test
+
+# Calculate power for each alpha level across values of sigma
+power_curves <- lapply(alpha_levels, function(alpha) {
+  unlist(lapply(sigmas, function(sig) nrm_pwr1(n = n, alpha = alpha, H0 = H0, H1 = H1, sig = sig)))
+})
+
+# Convert the results into a data frame for plotting
+power_df <- data.frame(
+  Sigma = rep(sigmas, times = length(alpha_levels)),
+  Power = unlist(power_curves),
+  Alpha = factor(rep(alpha_levels, each = length(sigmas)))
+)
+
+# Plot the power curves
+library(ggplot2)
+ggplot(power_df, aes(x = Sigma, y = Power, color = Alpha)) +
+  geom_line(size = 1.2) +
+  labs(title = "Power Curve for Varying Sigma Values with Fixed n = 30",
+       x = "Standard Deviation (Sigma)",
+       y = "Power of the Test",
+       color = "Significance Level (Alpha)") +
+  theme_minimal()
+```
+
+Larger values of sigma reduce the power of the test, this is observed for both significance levels.  The higher alpha value has greater power across the higher sigma values.
+
+- Use the function to create a set of power curves based on varying the value of the true hypothesis from 100 to 120. Do this for sample sizes: n = 10, 20, 30 on the same plot.
+
+```{r}
+n_values <- c(10, 20, 30)  # Sample sizes
+alpha <- 0.05  # Fixed significance level
+H0 <- 100  # Null hypothesis mean
+H1_values <- seq(100, 120, by = 1)  # Range of true means to test
+sigma <- 15  # Standard deviation
+
+# Calculate power for each sample size across values of H1
+power_curves <- lapply(n_values, function(n) {
+  unlist(lapply(H1_values, function(H1) nrm_pwr1(n = n, alpha = alpha, H0 = H0, H1 = H1, sig = sigma)))
+})
+
+# Convert the results into a data frame for plotting
+power_df <- data.frame(
+  True_Mean = rep(H1_values, times = length(n_values)),
+  Power = unlist(power_curves),
+  Sample_Size = factor(rep(n_values, each = length(H1_values)))
+)
+
+# Plot the power curves
+library(ggplot2)
+ggplot(power_df, aes(x = True_Mean, y = Power, color = Sample_Size)) +
+  geom_line(size = 1.2) +
+  labs(title = "Power Curve for Varying True Mean (H1) with Different Sample Sizes",
+       x = "True Mean (H1)",
+       y = "Power of the Test",
+       color = "Sample Size (n)") +
+  theme_minimal()
+```
+
+Larger sample sizes increase the tests power.  As the true mean gets further away from the null hypothesis, all of the tests increase in power, with the larger sample sizes having higher power.
+
+- Summarize the relationships between power and
+(a) sample size,
+(b) standard deviation,
+(c) effect size (value of H1),
+(d) Type I error rate.
+
+For example, for part (a), assuming a fixed variance, fixed effect size, and fixed Type I error rate, what happens to power as the sample size is increased?
+
+(a) Power increases as sample size increases.
+(b) Power decreases as standard deviation increases.
+(c) Power increases as effect size increases (value of H1).
+(d) Power increases as Type 1 error rate increases.
+
+
+- 
+
+
+
+
+
+
+
+
+### Exercise 5
+
+There is an anonymous survey in Canvas. Please take a few minutes to complete the survey.
+
+The survey allows me to better understand how you are doing in the class and how I can help you. As mentioned, the answers are anonymous and will not affect your grade. I will be able to see that you have completed the survey, and will not have access to any answers before the deadline.
+
+Provide constructive criticism. `This class sucks', doesn't help me to get better, but telling me why this class sucks might. 
+
+_If the entire class finishes the survey before the deadline, I will give everyone a 2 point extra credit on your final letter grade_
+
+
